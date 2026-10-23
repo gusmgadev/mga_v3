@@ -1,0 +1,2 @@
+-- Seed de datos sinteticos (AGENTS.md §5). Nunca datos reales.
+-- Las semillas de roles/permisos se agregan en la Fase 1.
