@@ -3,12 +3,20 @@
 // 1) Toda process.env.X usada en el código está declarada en la tabla §9 de AGENTS.md.
 // 2) Toda variable de §9 está cubierta en .env.example.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, isAbsolute } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const SCAN_DIRS = ['app', 'lib', 'components', 'scripts', 'tests', 'supabase'];
 const SCAN_FILES = ['proxy.ts', 'next.config.ts'];
 const SKIP = new Set(['node_modules', '.next', 'dist', '.git']);
+
+// Scripts one-off de la migración de la BD (usan SUPA_TOKEN/LOCALAPPDATA, no env de la app).
+const OMITIR = new Set([
+  'scripts/exportar-catalogo.mjs',
+  'scripts/migrar-datos.mjs',
+  'scripts/migrar-auth.mjs',
+  'scripts/ejecutar-sql.mjs',
+]);
 
 function seccionAgents() {
   const md = readFileSync(join(ROOT, 'AGENTS.md'), 'utf8');
@@ -56,8 +64,11 @@ const files = [...SCAN_FILES, ...SCAN_DIRS.flatMap((d) => {
   }
 })];
 for (const f of files) {
-  if (f.replaceAll('\\', '/').endsWith('scripts/check-env.mjs')) continue;
-  const txt = readFileSync(f, 'utf8');
+  const abs = isAbsolute(f) ? f : join(ROOT, f);
+  const rel = abs.replaceAll('\\', '/');
+  if (rel.endsWith('scripts/check-env.mjs')) continue;
+  if ([...OMITIR].some((o) => rel.endsWith(o))) continue;
+  const txt = readFileSync(abs, 'utf8');
   for (const m of txt.matchAll(/process\.env\.([A-Z0-9_]+)/g)) {
     if (!usadas.has(m[1])) usadas.set(m[1], f);
   }

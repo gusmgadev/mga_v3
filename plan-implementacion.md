@@ -1,6 +1,6 @@
 # Plan de implementación: MGA Informática — plataforma web v3
 
-> Fuente de verdad: `AGENTS.md` (reglas, seguridad, §10.1) + `especificacion.md` (funcionalidad). Orden definido por el dueño: **Administración → Altas → Servicios → Fondos → Zoologic → Prospectos → Inventario → LandingPage → Superadmin → Landing pública → Seguridad y despliegue**.
+> Fuente de verdad: `AGENTS.md` (reglas, seguridad, §10.1) + `especificacion.md` (funcionalidad). Orden definido por el dueño: **Administración → Altas → Servicios → Fondos → Zoologic → Prospectos → Inventario → LandingPage → Superadmin → Landing pública → Seguridad y despliegue**. (El superadmin se fusionó en el dashboard — D-15/16/17 — y su contenido entra como Fase 9 bajo `/dashboard/admin/*`.)
 > Después de cada fase: probar, anotar errores en `fixes.md`, cerrar con lint + typecheck + tests + build (§5), actualizar `MAP.md` y proponer commit (lo ejecuta el dueño). Al avisar al dueño, indicar qué puntos de §4 aplicaron.
 > Cada sub-tarea se marca `[x]` al completarse. Un chat por fase.
 > Skills: `seguridad-web` en toda fase que toque datos, permisos, auth o uploads; `fechas-y-zonas-horarias` donde se manejen fechas (mínimo Fases 4, 5 y 8).
@@ -8,7 +8,7 @@
 
 ## Optimizaciones propuestas (confirmar antes de empezar)
 
-1. **Superadmin como Fase 9** (después de LandingPage, antes de la landing pública): tu orden no lo menciona; es necesario por AGENTS §7 y por P-06/P-08. Si preferís otra posición, decime.
+1. **Superadmin como Fase 9** (después de LandingPage, antes de la landing pública): tu orden no lo menciona; es necesario por AGENTS §7 y por P-06/P-08. Si preferís otra posición, decime. **Actualización (D-15/16/17):** el superadmin se fusionó en el dashboard (submódulos Empresas y Módulos POS de Administración, APIs `/api/superadmin/*` con sesión + permiso); P-06 quedó resuelta (una sola BD) y P-08 no aplica a un panel sin login propio.
 2. **Superficie pública de datos en las fases del dashboard:** la política de datos para la landing (noticias publicadas, clientes `mostrar_en_landing`) se fija en Fase 2 y Fase 8, no en P2, para tocar la frontera una sola vez (SEP-10).
 3. **Integraciones siempre tras una interfaz + mock** (Groq, IMAP, Places, PageSpeed, Instagram, Resend): los tests nunca dependen de servicios reales (§5).
 4. **Cada fase lista sus bloqueantes P-xx:** no se arranca sin resolverlos.
@@ -33,7 +33,7 @@
 - [x] Headers base de producción en `next.config.ts` (SEP-8: nosniff, Referrer-Policy, `frame-ancestors`, HSTS; CSP por zona queda para Fases P1/1)
 - [x] `app/layout.tsx` mínimo (`lang="es-AR"`) + página de prueba que compila
 - [x] CI GitHub Actions: install, lint, typecheck, unit, build, `npm audit --omit=dev`, check-env
-- [x] Decidir entorno de test de la BD del POS (M-11): **mock del cliente `supabase-master`** (sin segunda instancia)
+- [x] Decidir entorno de test de la BD del POS (M-11): resuelto por D-17 — **una sola BD**; sin `supabase-master` ni segunda instancia
 - [x] Crear `MAP.md` real
 - **Seguridad:** `.gitignore` con `.env*`; `.env.example` sin valores; `.env.local` ignorado y verificado (`git check-ignore`); ningún default inseguro; check-env en CI.
 - **Cierre:** `lint ✓ · tsc ✓ · vitest ✓ · check-env ✓ · build ✓ · audit 0 vulns ✓ · dev --webpack HTTP 200 ✓` → MAP + commit `3264e01`.
@@ -42,20 +42,20 @@
 
 **Bloqueantes:** P-02, P-05, P-07, P-11, P-13, P-14. **Exigible al cierre:** P-08 (MFA TOTP para Administradores, flujo contra Credentials de NextAuth v5).
 
-- [ ] Migración de identidad: `roles` (con `is_admin`, P-07), `users`, `role_permissions` por nodos (clave `ruta` + acciones, P-14); RLS + GRANTs; seed
-- [ ] RPC de la migración: `EXECUTE` revocado a `PUBLIC`/`anon` (salvo las públicas por diseño) y `SECURITY DEFINER` con `search_path` fijo (§4)
-- [ ] P-05: unificar nombres de tablas (Radar en español) en migración/seed y en la futura spec
-- [ ] `lib/private/modulos.ts`: árbol canónico de 8 módulos del §10.1 (D-11)
-- [ ] Resolución de permisos por niveles con herencia simple (D-12), server-only, con `is_admin` → `administracion.*` + `landing_page.*`; tests unitarios de herencia
-- [ ] NextAuth v5 Credentials + JWT sobre Supabase Auth (`signInWithPassword` con anon en servidor); `AUTH_SECRET`
-- [ ] Flujo de credenciales P-13: entrega de contraseña inicial (invite o clave temporal forzada a cambio) + reset "olvidé mi contraseña"
-- [ ] `proxy.ts`: `/dashboard/*` sin sesión → signin; `/dashboard/admin/*` solo admin; signin con sesión → dashboard; superadmin por cookie
-- [ ] Rate limit de login (P-02: almacén compartido, p. ej. Upstash) por IP y por email; error genérico; mínimo 12 caracteres
-- [ ] Setup Tailwind v4 con tokens propios por route group desde `lib/private/theme.ts` (D-10/P-11; patrón definido en `specs/privado.md`)
-- [ ] Shell del dashboard: home con tarjetas y saludo, sidebar y rutas derivadas de `modulos.ts`
-- [ ] Usuarios: CRUD, alta solo por Administrador, solo admin cambia rol ajeno, nadie el propio
-- [ ] Roles: crear/eliminar; Permisos: matriz UI + API sobre nodos del árbol
-- [ ] Tests: inventario de rutas `app/api/**` (401/403 por familia, SEP-6), fixtures con permisos parciales por nivel, herencia, rate limit de login, MFA
+- [x] Migración de identidad: `roles` (con `is_admin`, P-07), `users`, `role_permissions` por nodos (clave `ruta` + acciones, P-14); RLS + GRANTs; seed — hoy vive como `supabase/migrations/000001_identidad_normalizada.sql` (aplicada en el proyecto remoto; baseline `000000` = esquema de mgaServiciosBD)
+- [x] RPC de la migración: `EXECUTE` revocado a `PUBLIC`/`anon` (salvo las públicas por diseño) y `SECURITY DEFINER` con `search_path` fijo (§4) — sin RPCs en esta migración; la regla aplica a las migraciones que las agreguen
+- [x] P-05: unificar nombres de tablas (Radar en español) en migración/seed y en la futura spec — spec `specs/privado.md` §4.5 unificada; las tablas del Radar se crean en Fase 6 con esos nombres
+- [x] `lib/private/modulos.ts`: árbol canónico de 8 módulos del §10.1 (D-11)
+- [x] Resolución de permisos por niveles con herencia simple (D-12), server-only, con `is_admin` → `administracion.*` + `landing_page.*`; tests unitarios de herencia
+- [x] NextAuth v5 Credentials + JWT sobre Supabase Auth (`signInWithPassword` con anon en servidor); `AUTH_SECRET`
+- [x] Flujo de credenciales P-13: entrega de contraseña inicial (invite o clave temporal forzada a cambio) + reset "olvidé mi contraseña"
+- [x] `proxy.ts`: `/dashboard/*` sin sesión → signin; forzar cambio de clave; `/dashboard/admin/*` sin gate is_admin (permiso por vista, D-15/D-16); signin con sesión → dashboard
+- [x] Rate limit de login (P-02: almacén compartido, p. ej. Upstash) por IP y por email; error genérico; mínimo 12 caracteres
+- [x] Setup Tailwind v4 con tokens propios por route group desde `lib/private/theme.ts` (D-10/P-11; patrón definido en `specs/privado.md`)
+- [x] Shell del dashboard: home con tarjetas y saludo, sidebar y rutas derivadas de `modulos.ts`
+- [x] Usuarios: CRUD, alta solo por Administrador, solo admin cambia rol ajeno, nadie el propio
+- [x] Roles: crear/eliminar; Permisos: matriz UI + API sobre nodos del árbol
+- [x] Tests: inventario de rutas `app/api/**` (401/403 por familia, SEP-6), fixtures con permisos parciales por nivel, herencia, rate limit de login, MFA — 35 tests (unit + contract) verdes; E2E de login/permisos pendientes de BD (fixes.md)
 - **Seguridad:** §4 autenticación (mensajes genéricos, servidor siempre), cookies `HttpOnly+Secure+SameSite`, rate limit, mínimo privilegio; puntos aplicados: secretos, acceso, datos, cookies, endpoints.
 - **Cierre:** verificación completa §5 + MAP + fixes + commit.
 
@@ -154,18 +154,18 @@
 - **Seguridad:** sanitización de HTML (XSS), uploads, superficie pública mínima.
 - **Cierre:** verificación §5 + MAP + fixes + commit.
 
-## FASE 9: Superadmin — empresas y catálogo POS [zona privada superadmin]
+## FASE 9: Panel POS de empresas — Empresas y catálogo POS [zona privada; superadmin fusionado D-15]
 
-**Bloqueantes:** P-06, P-08 (segunda parte: endurecer el acceso superadmin). **Posición a confirmar (optimización 1).**
+**Bloqueantes:** ~~P-06~~ (resuelta por D-17), P-08 no aplica (sin login propio). **Código adelantado durante el trabajo de migración de la BD** (ver MAP): pantallas y APIs implementadas; queda cierre formal.
 
-- [ ] Fijar el entorno de test de la BD del POS (M-11; decisión de Fase 0)
-- [ ] Cliente propio hacia la BD del POS con env `POS_SUPABASE_*` (P-06)
-- [ ] Login con `SUPERADMIN_SECRET` (sin default; sin él → rechazo); cookie con token aleatorio firmado (nunca el secreto como valor), `HttpOnly+Secure+SameSite=Strict`, `Max-Age` ≤ 24 h
-- [ ] Rate limit de login; respuesta genérica; logout
-- [ ] Empresas: lista (plan, estado, módulos activos, vencimiento), alta con todos los módulos, edición de datos y de módulos (upsert, sin borrar filas)
-- [ ] Catálogo de módulos POS: CRUD en BD (fuente única, D-07)
-- [ ] Tests de contrato: sin secreto → rechazo; cookie con firma inválida → 401; sin datos reales
-- **Seguridad:** cookie firmada, rate limit, mínimo privilegio, secretos.
+- [x] Nodos `administracion.empresas` y `administracion.modulos_pos` en `lib/private/modulos.ts` (empresas sin eliminar físico: baja lógica)
+- [x] Rol `Superadmin` (D-16, no `is_admin`) con los dos nodos concedidos — seed en migración `000001`
+- [x] Pantallas `/dashboard/admin/empresas` y `/dashboard/admin/modulos-pos` (server + `EmpresasClient` / `ModulosPosClient`)
+- [x] APIs `/api/superadmin/{empresas,modulos}` con `requierePermisoApi` (sesión + nodo); service key write-only (`tiene_service_key`)
+- [x] Alta de empresa inserta filas en `empresa_modulos`; edición de módulos upsert `onConflict`
+- [x] Tests: inventario de rutas cubre superadmin (401/403/parciales); unit de modulos cubre los nodos
+- [ ] Verificación manual: alta/edición de empresa y CRUD de catálogo con rol Superadmin
+- **Seguridad:** mínimo privilegio (permisos por nodo, no is_admin), credenciales write-only, RLS/service role en servidor.
 - **Cierre:** verificación §5 + MAP + fixes + commit.
 
 ## FASE P1: Landing pública — layout, home, servicios y sistemas [zona pública]

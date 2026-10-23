@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cssDeMarca } from "@/lib/shared/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,6 +25,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="es-AR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: cssDeMarca() }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

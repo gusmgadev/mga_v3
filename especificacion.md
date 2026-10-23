@@ -11,7 +11,7 @@
 MGA Informática es una empresa de servicios IT: desarrollo web, sistemas de gestión Zoologic, consultoría y soporte. La aplicación tiene dos caras:
 
 - **Sitio público:** presenta la empresa, sus servicios y sistemas; muestra clientes y noticias como prueba social; y capta consultas de potenciales clientes mediante un formulario de contacto.
-- **Sistema interno (dashboard):** cubre el ciclo completo del negocio — prospección comercial (búsqueda en internet y leads por email), gestión de clientes, activos, servicios y presupuestos, inventario con remitos, y control de fondos (gastos y cobranzas) — más un panel superadmin para administrar las empresas clientes del sistema de punto de venta.
+- **Sistema interno (dashboard):** cubre el ciclo completo del negocio — prospección comercial (búsqueda en internet y leads por email), gestión de clientes, activos, servicios y presupuestos, inventario con remitos, y control de fondos (gastos y cobranzas) — más la administración de las empresas clientes del sistema de punto de venta (dentro del grupo Administración).
 
 ---
 
@@ -147,6 +147,9 @@ Creación y eliminación de los roles (grupos de permisos) de la empresa.
 #### Permisos
 Definición de qué puede ver, crear, editar y eliminar cada rol, sobre los módulos, submódulos y acciones concretas del sistema (por ejemplo: ver Servicios pero no editarlos, o solo poder publicar noticias). Conceder un grupo concede todo lo que contiene; para excluir algo, se concede lo que sí y se deja lo demás fuera.
 
+#### Empresas y Módulos POS
+Administración de las empresas clientes del sistema de punto de venta y de su catálogo de módulos. Detalle en el §4.
+
 ### 3.8 LandingPage
 
 Gestión del contenido del sitio público que se edita desde el dashboard.
@@ -159,12 +162,11 @@ Publicación de las noticias que aparecen en el sitio público.
 
 ---
 
-## 4. Superadmin
+## 4. Administración de empresas POS (dentro del dashboard)
 
-Panel de uso exclusivo del dueño para administrar las empresas que usan el sistema de punto de venta (POS).
+Uso exclusivo del dueño (rol Superadmin o Administrador) para administrar las empresas que usan el sistema de punto de venta (POS). Vive en el grupo **Administración** del dashboard, junto a Usuarios, Roles y Permisos; se entra con la misma sesión.
 
-- **Login:** acceso con una contraseña propia del panel (independiente del dashboard).
-- **Empresas:** lista con plan (básico / profesional / enterprise), estado de implementación, módulos activos y vencimiento; alta (con todos los módulos preseleccionados) y edición de datos y de los módulos activos de cada empresa.
+- **Empresas:** lista con plan (básico / profesional / enterprise), estado de implementación, módulos activos y vencimiento; alta (con los módulos del catálogo disponibles) y edición de datos y de los módulos activos de cada empresa. La baja es lógica (se desactiva, no se elimina).
 - **Módulos POS:** catálogo de los módulos disponibles del sistema (ventas, inventario, caja, contactos, finanzas, administración, óptica, etc.). Es la única fuente de verdad: las empresas activan o desactivan módulos de ese catálogo.
 
 ---
