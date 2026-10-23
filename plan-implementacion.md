@@ -19,24 +19,24 @@
 
 ## FASE 0: Base — repo, stack, CI [zona: base]
 
-**Bloqueantes:** P-01, P-10.
+**Bloqueantes:** ~~P-01~~ y ~~P-10~~ resueltos. **Completada** (commit `3264e01`).
 
-- [ ] Aprobar librerías propuestas (P-01) y fijar versión exacta de `next-auth` v5 (P-10)
-- [ ] `.gitignore` (con `.env*`) **antes** de `git init`; `git init`; primer commit
-- [ ] Next 16 + React 19 + TypeScript strict; `params`/`searchParams` como `Promise`
-- [ ] ESLint con fronteras `no-restricted-imports` por zona (SEP-2)
-- [ ] `proxy.ts` de protecciones (no `middleware.ts`)
-- [ ] Instalar solo dependencias autorizadas (§2)
-- [ ] Vitest + Playwright (+ `@axe-core/playwright`); estructura `tests/{unit,contract,e2e}`
-- [ ] `.env.example` completo desde §9 + script `scripts/check-env`
-- [ ] Supabase local (CLI) + esqueleto `supabase/migrations/` + `seed.sql` sintético
-- [ ] Headers base de producción en `next.config.ts` (SEP-8)
-- [ ] `app/layout.tsx` mínimo (`lang="es-AR"`) + página de prueba que compila
-- [ ] CI GitHub Actions: install, lint, typecheck, unit, build, `npm audit --omit=dev`, check-env
-- [ ] Decidir entorno de test de la BD del POS para los tests del superadmin (M-11)
-- [ ] Crear `MAP.md` real
-- **Seguridad:** `.gitignore` con `.env*`; ningún default inseguro; check-env en CI.
-- **Cierre:** `npm run lint && tsc --noEmit && vitest run && next build` verde → MAP + fixes + commit propuesto.
+- [x] Aprobar librerías propuestas (P-01) y fijar versión exacta de `next-auth` v5 (P-10) — `next-auth@5.0.0-beta.32`; `@hookform/resolvers@5.9.2` por conflicto de peers de la 6.x
+- [x] `.gitignore` (con `.env*` + `!.env.example`) **antes** de `git init`; `git init`; primer commit
+- [x] Next 16.4.2 + React 19.3 + TypeScript strict; `params`/`searchParams` como `Promise`
+- [x] ESLint con fronteras `no-restricted-imports` por zona (SEP-2)
+- [x] `proxy.ts` de protecciones (no `middleware.ts`) — esqueleto con matcher; lógica en Fase 1
+- [x] Instalar solo dependencias autorizadas (§2) — incluye `@tailwindcss/postcss` para el dev con webpack y `@types/node@^24` (requisito de vitest 5)
+- [x] Vitest + Playwright (+ `@axe-core/playwright`); estructura `tests/{unit,contract,e2e}`; smoke unitario verde
+- [x] `.env.example` completo desde §9 + script `scripts/check-env` (incluye `UPSTASH_REDIS_REST_*`, añadidas a §9)
+- [x] Supabase local (CLI init) + esqueleto `supabase/migrations/` + `seed.sql` sintético
+- [x] Headers base de producción en `next.config.ts` (SEP-8: nosniff, Referrer-Policy, `frame-ancestors`, HSTS; CSP por zona queda para Fases P1/1)
+- [x] `app/layout.tsx` mínimo (`lang="es-AR"`) + página de prueba que compila
+- [x] CI GitHub Actions: install, lint, typecheck, unit, build, `npm audit --omit=dev`, check-env
+- [x] Decidir entorno de test de la BD del POS (M-11): **mock del cliente `supabase-master`** (sin segunda instancia)
+- [x] Crear `MAP.md` real
+- **Seguridad:** `.gitignore` con `.env*`; `.env.example` sin valores; `.env.local` ignorado y verificado (`git check-ignore`); ningún default inseguro; check-env en CI.
+- **Cierre:** `lint ✓ · tsc ✓ · vitest ✓ · check-env ✓ · build ✓ · audit 0 vulns ✓ · dev --webpack HTTP 200 ✓` → MAP + commit `3264e01`.
 
 ## FASE 1: Administración — identidad, usuarios, roles, permisos, shell [zona privada]
 
