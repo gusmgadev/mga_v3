@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
-import { supabaseAuthBrowser } from '@/lib/private/supabase-auth-browser'
 
 export default function OlvidePasswordPage() {
   const [email, setEmail] = useState('')
@@ -16,12 +15,13 @@ export default function OlvidePasswordPage() {
     setCargando(true)
     setError('')
     try {
-      const { error: fallo } = await supabaseAuthBrowser().auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset`,
+      const respuesta = await fetch('/api/auth/olvide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       })
-      if (fallo) {
-        setError('No se pudo procesar el pedido. Probá de nuevo en unos minutos.')
-        return
+      if (!respuesta.ok) {
+        throw new Error('No se pudo procesar el pedido')
       }
       setEnviado(true)
     } catch {

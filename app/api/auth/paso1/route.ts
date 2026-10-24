@@ -5,11 +5,12 @@ import { obtenerPerfil } from '@/lib/private/auth/perfil'
 import { challengeMfa, factorVerificado } from '@/lib/private/auth/mfa'
 import { COOKIE_ACCESO_MFA, OPCIONES_COOKIE_ACCESO_MFA } from '@/lib/private/auth/cookies'
 import { supabaseAnon } from '@/lib/private/supabase-anon'
-import { rateLimitLoginPorEmail, rateLimitLoginPorIp } from '@/lib/shared/rate-limit'
+import { rateLimitLoginPorEmail, rateLimitLoginPorIp } from '@/lib/private/rate-limit'
 
 const Esquema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   password: z.string().min(1).max(200),
+  website: z.string().max(100).optional(),
 })
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -19,6 +20,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   try {
     datos = Esquema.parse(await req.json())
   } catch {
+    return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+  }
+
+  // Honeypot: si el campo oculto tiene valor, es un bot.
+  if (datos.website && datos.website.trim().length > 0) {
     return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
   }
 
@@ -55,7 +61,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const perfil = await obtenerPerfil(data.user.id)
-  if (!perfil) {
+  if (!perfil || !perfil.activo) {
     return NextResponse.json({ error: 'Email o contraseña incorrectos' }, { status: 401 })
   }
 
@@ -82,6 +88,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   )
 
   const respuesta = NextResponse.json({ step_token: stepToken, mfa_requerido: hasMfa })
-  respuesta.cookies.set(COOKIE_ACCESO_MFA, data.session.access_token, OPCIONES_COOKIE_ACCESO_MFA)
+  if (hasMfa) {
+    respuesta.cookies.set(COOKIE_ACCESO_MFA, data.session.access_token, OPCIONES_COOKIE_ACCESO_MFA)
+  }
   return respuesta
 }

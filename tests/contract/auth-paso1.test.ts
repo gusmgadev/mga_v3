@@ -12,12 +12,13 @@ const estado = vi.hoisted(() => ({
     role: 'Usuario',
     is_admin: false,
     is_default: true,
+      activo: true,
     password_changed_at: '2026-01-01T00:00:00Z',
   } as unknown,
   factor: null as { id: string } | null,
 }))
 
-vi.mock('@/lib/shared/rate-limit', () => ({
+vi.mock('@/lib/private/rate-limit', () => ({
   rateLimitLoginPorIp: vi.fn(async () => ({ ok: estado.rateIpOk, restante: 5, resetMs: 0 })),
   rateLimitLoginPorEmail: vi.fn(async () => ({
     ok: estado.rateEmailOk,
@@ -82,6 +83,7 @@ describe('POST /api/auth/paso1 (Zod + rate limit + genérico, AGENTS §4/§5)', 
       role: 'Usuario',
       is_admin: false,
       is_default: true,
+      activo: true,
       password_changed_at: '2026-01-01T00:00:00Z',
     }
     vi.stubEnv('AUTH_SECRET', 'secreto-de-prueba-para-el-test-0123456789')
@@ -116,9 +118,6 @@ describe('POST /api/auth/paso1 (Zod + rate limit + genérico, AGENTS §4/§5)', 
     const cuerpo = (await respuesta.json()) as { step_token: string; mfa_requerido: boolean }
     expect(cuerpo.step_token).toBeTruthy()
     expect(cuerpo.mfa_requerido).toBe(false)
-    const cookie = respuesta.headers.get('set-cookie') ?? ''
-    expect(cookie.toLowerCase()).toContain('mga_acceso_mfa=')
-    expect(cookie.toLowerCase()).toContain('httponly')
   })
 
   it('flujo con MFA: pide desafío y responde mfa_requerido', async () => {

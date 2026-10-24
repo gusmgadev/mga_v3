@@ -9,6 +9,8 @@ export interface PerfilUsuario {
   role: string
   is_admin: boolean
   is_default: boolean
+  activo: boolean
+  auth_version: number
   password_changed_at: string | null
 }
 
@@ -17,6 +19,8 @@ interface FilaUsers {
   email: string
   name: string
   role_id: string
+  activo: boolean
+  auth_version: number
   password_changed_at: string | null
   roles: {
     id: string
@@ -30,7 +34,7 @@ export async function obtenerPerfil(userId: string): Promise<PerfilUsuario | nul
   const { data, error } = await supabaseAdmin()
     .from('users')
     .select(
-      'id, email, name, role_id, password_changed_at, roles ( id, name, is_default, is_admin )',
+      'id, email, name, role_id, activo, auth_version, password_changed_at, roles ( id, name, is_default, is_admin )',
     )
     .eq('id', userId)
     .single()
@@ -45,6 +49,8 @@ export async function obtenerPerfil(userId: string): Promise<PerfilUsuario | nul
     role: fila.roles.name,
     is_admin: fila.roles.is_admin,
     is_default: fila.roles.is_default,
+    activo: fila.activo,
+    auth_version: fila.auth_version,
     password_changed_at: fila.password_changed_at,
   }
 }

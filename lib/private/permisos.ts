@@ -25,9 +25,14 @@ function permiteExacto(asignados: PermisoAsignado[], clave: string, accion: Acci
   return asignados.some((p) => p.nodo === clave && p.acciones.includes(accion))
 }
 
+const NODOS_ADMIN = ['administracion', 'landing_page']
+function isAdminImplicito(clave: string): boolean {
+  return NODOS_ADMIN.some((n) => clave === n || clave.startsWith(`${n}.`))
+}
+
 /**
  * Resolución de permisos por niveles (AGENTS §10.2, D-12, spec §5.3).
- * - `is_admin` = acceso total.
+ * - `is_admin` = acceso implícito solo a `administracion.*` y `landing_page.*`.
  * - Grupo/submódulo: la acción se hereda a todo el subárbol.
  * - Función CRUD: hereda de la acción equivalente del subárbol (`nuevo` ← `crear`…).
  * - Función no-CRUD: requiere fila exacta en su propio nodo (nunca se hereda).
@@ -38,7 +43,7 @@ export function permite(
   clave: string,
   accion: Accion,
 ): boolean {
-  if (rol.is_admin) return true
+  if (rol.is_admin && isAdminImplicito(clave)) return true
   const encontrado = buscarNodo(clave)
   if (!encontrado) return false
   const { nodo } = encontrado

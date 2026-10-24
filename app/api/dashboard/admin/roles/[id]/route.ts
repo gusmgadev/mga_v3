@@ -15,6 +15,7 @@ type Params = { params: Promise<{ id: string }> }
 export async function PATCH(req: Request, { params }: Params): Promise<NextResponse> {
   const guardado = await requierePermisoApi('administracion.roles', 'editar')
   if (!guardado.ok) return guardado.respuesta
+  const session = guardado.session
   const { id } = await params
 
   let datos: z.infer<typeof Esquema>
@@ -22,6 +23,17 @@ export async function PATCH(req: Request, { params }: Params): Promise<NextRespo
     datos = Esquema.parse(await req.json())
   } catch {
     return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+  }
+
+  if (id === session.user.role_id) {
+    return NextResponse.json({ error: 'No podés editar tu propio rol' }, { status: 400 })
+  }
+
+  if (typeof datos.is_admin === 'boolean' && !session.user.is_admin) {
+    return NextResponse.json(
+      { error: 'Solo un administrador puede cambiar el flag de administrador' },
+      { status: 403 },
+    )
   }
 
   if (datos.is_admin === false) {
@@ -70,7 +82,12 @@ export async function PATCH(req: Request, { params }: Params): Promise<NextRespo
 export async function DELETE(_req: Request, { params }: Params): Promise<NextResponse> {
   const guardado = await requierePermisoApi('administracion.roles', 'eliminar')
   if (!guardado.ok) return guardado.respuesta
+  const session = guardado.session
   const { id } = await params
+
+  if (id === session.user.role_id) {
+    return NextResponse.json({ error: 'No podés eliminar tu propio rol' }, { status: 400 })
+  }
 
   const { data: usuarios } = await supabaseAdmin()
     .from('users')

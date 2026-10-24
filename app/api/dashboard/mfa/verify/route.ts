@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requiereSesionApi } from '@/lib/private/sesion'
+import { supabaseAdmin } from '@/lib/private/supabase-admin'
 import { verificarPrimerCodigo } from '@/lib/private/auth/mfa'
 
 const Esquema = z.object({
@@ -29,5 +30,16 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!ok) {
     return NextResponse.json({ error: 'Código incorrecto' }, { status: 400 })
   }
+
+  const { data: perfil } = await supabaseAdmin()
+    .from('users')
+    .select('auth_version')
+    .eq('id', session.user.id)
+    .single()
+  await supabaseAdmin()
+    .from('users')
+    .update({ auth_version: (perfil?.auth_version ?? 0) + 1 })
+    .eq('id', session.user.id)
+
   return NextResponse.json({ ok: true })
 }

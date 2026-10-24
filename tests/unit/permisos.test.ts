@@ -6,9 +6,10 @@ const sinAdmin = { is_admin: false }
 const admin = { is_admin: true }
 
 describe('permisos (herencia simple, D-12)', () => {
-  it('is_admin permite todo sin permisos asignados', () => {
-    expect(permite(admin, [], 'inventario.remitos', 'crear')).toBe(true)
+  it('is_admin permite administracion y landing_page sin permisos asignados', () => {
+    expect(permite(admin, [], 'administracion.usuarios', 'ver')).toBe(true)
     expect(permite(admin, [], 'landing_page.noticias.publicar', 'ver')).toBe(true)
+    expect(permite(admin, [], 'inventario.remitos', 'crear')).toBe(false)
   })
 
   it('sin asignaciones no hay acceso', () => {

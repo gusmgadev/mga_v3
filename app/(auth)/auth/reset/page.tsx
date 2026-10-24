@@ -20,6 +20,7 @@ export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [repetir, setRepetir] = useState('')
   const [mensaje, setMensaje] = useState('')
+  const [accessToken, setAccessToken] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelado = false
@@ -31,17 +32,20 @@ export default function ResetPasswordPage() {
 
       try {
         if (codigo) {
-          const { error } = await supabase.auth.exchangeCodeForSession(codigo)
+          const { data, error } = await supabase.auth.exchangeCodeForSession(codigo)
           if (error) throw error
+          if (!cancelado) setAccessToken(data.session?.access_token ?? null)
         } else if (hash.accessToken && hash.refreshToken) {
-          const { error } = await supabase.auth.setSession({
+          const { data, error } = await supabase.auth.setSession({
             access_token: hash.accessToken,
             refresh_token: hash.refreshToken,
           })
           if (error) throw error
+          if (!cancelado) setAccessToken(data.session?.access_token ?? null)
         } else {
           const { data } = await supabase.auth.getSession()
           if (!data.session) throw new Error('sin sesión')
+          if (!cancelado) setAccessToken(data.session.access_token)
         }
         if (!cancelado) setEstado('listo')
       } catch {
@@ -67,27 +71,37 @@ export default function ResetPasswordPage() {
       setMensaje('Las contraseñas no coinciden.')
       return
     }
+    if (!accessToken) {
+      setEstado('sin-sesion')
+      setMensaje('El link expiró o ya fue usado. Pedí uno nuevo.')
+      return
+    }
+
     setEstado('guardando')
     setMensaje('')
     try {
-      const supabase = supabaseAuthBrowser()
-      const { error: fallo } = await supabase.auth.updateUser({ password })
-      if (fallo) throw fallo
-
-      const { data } = await supabase.auth.getSession()
-      const accessToken = data.session?.access_token
-      if (accessToken) {
-        await fetch('/api/auth/password-modificada', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }).catch(() => undefined)
+      const respuesta = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: accessToken, password }),
+      })
+      const cuerpo = (await respuesta.json().catch(() => ({}))) as { error?: string }
+      if (!respuesta.ok) {
+        throw new Error(cuerpo.error ?? 'No se pudo actualizar la contraseña')
       }
 
-      window.location.hash = ''
+      const supabase = supabaseAuthBrowser()
+      await supabase.auth.signOut({ scope: 'local' })
+
+      window.history.replaceState({}, document.title, '/auth/signin?msg=password-ok')
       setEstado('ok')
-    } catch {
+    } catch (e) {
       setEstado('error')
-      setMensaje('No se pudo actualizar la contraseña. Probá de nuevo en unos minutos.')
+      setMensaje(
+        e instanceof Error
+          ? e.message
+          : 'No se pudo actualizar la contraseña. Probá de nuevo en unos minutos.',
+      )
     }
   }
 

@@ -7,6 +7,7 @@ declare module 'next-auth' {
       role: string
       role_id: string
       is_admin: boolean
+      auth_version: number
       debeCambiarPassword: boolean
     } & DefaultSession['user']
   }
@@ -15,6 +16,7 @@ declare module 'next-auth' {
     role: string
     role_id: string
     is_admin: boolean
+    auth_version: number
     debeCambiarPassword: boolean
   }
 }
@@ -24,6 +26,7 @@ declare module 'next-auth/jwt' {
     role?: string
     role_id?: string
     is_admin?: boolean
+    auth_version?: number
     debeCambiarPassword?: boolean
   }
 }

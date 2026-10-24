@@ -20,17 +20,32 @@ export default function SigninPage() {
   )
 }
 
+function useCallbackUrlSeguro(raw: string): string {
+  if (typeof window === 'undefined') return '/dashboard'
+  if (!raw.startsWith('/')) return '/dashboard'
+  try {
+    const url = new URL(raw, window.location.origin)
+    if (url.origin !== window.location.origin) return '/dashboard'
+    if (url.protocol !== window.location.protocol) return '/dashboard'
+    return url.pathname + url.search
+  } catch {
+    return '/dashboard'
+  }
+}
+
 function SigninContenido() {
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [codigo, setCodigo] = useState('')
+  const [website, setWebsite] = useState('')
   const [paso, setPaso] = useState<'password' | 'mfa'>('password')
   const [stepToken, setStepToken] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
-  const destino = searchParams.get('callbackUrl') ?? '/dashboard'
+  const destinoRaw = searchParams.get('callbackUrl') ?? '/dashboard'
+  const destino = useCallbackUrlSeguro(destinoRaw)
   const aviso =
     searchParams.get('msg') === 'password-ok'
       ? 'Contraseña actualizada. Ingresá con la nueva.'
@@ -43,7 +58,7 @@ function SigninContenido() {
     const respuesta = await fetch('/api/auth/paso1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(datos),
+      body: JSON.stringify({ ...datos, website }),
     })
     const cuerpo = (await respuesta.json().catch(() => ({}))) as {
       step_token?: string
@@ -147,6 +162,16 @@ function SigninContenido() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-md border border-borde bg-fondo px-3 py-2 text-sm text-texto focus:border-primario"
+            />
+          </div>
+          <div className="sr-only" aria-hidden="true">
+            <input
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
             />
           </div>
 

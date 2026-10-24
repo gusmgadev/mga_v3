@@ -25,7 +25,23 @@ vi.mock('@/lib/private/supabase-admin', () => {
     insert: () => Promise.resolve({ data: null, error: null }),
     update: () => cadena,
     delete: () => cadena,
-    single: () => Promise.resolve({ data: null, error: null }),
+    single: () => {
+      const u = (estado.sesion as { user?: Record<string, unknown> } | null)?.user
+      if (!u) return Promise.resolve({ data: null, error: null })
+      return Promise.resolve({
+        data: {
+          id: u.id,
+          email: u.email,
+          name: u.name,
+          role_id: u.role_id,
+          activo: true,
+          auth_version: 0,
+          password_changed_at: null,
+          roles: { id: u.role_id, name: u.role, is_default: false, is_admin: u.is_admin },
+        },
+        error: null,
+      })
+    },
     then: (
       resolveFn: (v: { data: unknown; error: null }) => unknown,
     ) => resolveFn({ data: estado.permisos, error: null }),
@@ -150,6 +166,8 @@ describe('inventario de rutas (AGENTS §5, SEP-6)', () => {
         role_id: '22222222-2222-2222-2222-222222222222',
         is_admin: false,
         debeCambiarPassword: false,
+        auth_version: 0,
+        auth_version: 0,
       },
     }
     estado.permisos = []
@@ -187,6 +205,7 @@ describe('inventario de rutas (AGENTS §5, SEP-6)', () => {
         role_id: '33333333-3333-3333-3333-333333333333',
         is_admin: false,
         debeCambiarPassword: false,
+        auth_version: 0,
       },
     }
     estado.permisos = [{ nodo: 'inventario.remitos', acciones: ['ver'] }]
@@ -220,6 +239,7 @@ describe('inventario de rutas (AGENTS §5, SEP-6)', () => {
         role_id: '55555555-5555-5555-5555-555555555555',
         is_admin: true,
         debeCambiarPassword: false,
+        auth_version: 0,
       },
     }
     estado.permisos = []

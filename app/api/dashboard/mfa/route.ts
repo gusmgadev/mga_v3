@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requiereSesionApi } from '@/lib/private/sesion'
 import { eliminarFactor, verificarPrimerCodigo } from '@/lib/private/auth/mfa'
+import { supabaseAdmin } from '@/lib/private/supabase-admin'
 
 const Esquema = z.object({
   factor_id: z.string().min(1),
@@ -37,5 +38,16 @@ export async function DELETE(req: Request): Promise<NextResponse> {
       { status: 500 },
     )
   }
+
+  const { data: perfil } = await supabaseAdmin()
+    .from('users')
+    .select('auth_version')
+    .eq('id', session.user.id)
+    .single()
+  await supabaseAdmin()
+    .from('users')
+    .update({ auth_version: (perfil?.auth_version ?? 0) + 1 })
+    .eq('id', session.user.id)
+
   return NextResponse.json({ ok: true })
 }

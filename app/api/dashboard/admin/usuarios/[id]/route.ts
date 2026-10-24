@@ -41,11 +41,22 @@ export async function PATCH(req: Request, { params }: Params): Promise<NextRespo
     actualizacion.role_id = datos.role_id
   }
 
-  if (Object.keys(actualizacion).length > 0) {
-    const { error } = await supabaseAdmin()
-      .from('users')
-      .update(actualizacion)
-      .eq('id', id)
+  const debeInvalidarSesiones =
+    typeof datos.role_id === 'string' || datos.regenerar_clave === true
+  if (debeInvalidarSesiones) {
+    actualizacion.auth_version = 0 // se recalculará justo antes del update
+  }
+
+  if (Object.keys(actualizacion).length > 0 || debeInvalidarSesiones) {
+    if (debeInvalidarSesiones) {
+      const { data: perfil } = await supabaseAdmin()
+        .from('users')
+        .select('auth_version')
+        .eq('id', id)
+        .single()
+      actualizacion.auth_version = (perfil?.auth_version ?? 0) + 1
+    }
+    const { error } = await supabaseAdmin().from('users').update(actualizacion).eq('id', id)
     if (error) {
       return NextResponse.json({ error: 'No se pudo actualizar el usuario' }, { status: 500 })
     }
@@ -58,10 +69,6 @@ export async function PATCH(req: Request, { params }: Params): Promise<NextRespo
     if (error) {
       return NextResponse.json({ error: 'No se pudo regenerar la clave' }, { status: 500 })
     }
-    await supabaseAdmin()
-      .from('users')
-      .update({ password_changed_at: null })
-      .eq('id', id)
     claveTemporal = clave
   }
 
@@ -78,9 +85,17 @@ export async function DELETE(_req: Request, { params }: Params): Promise<NextRes
     return NextResponse.json({ error: 'No podés eliminar tu propia cuenta' }, { status: 400 })
   }
 
-  const { error } = await supabaseAdmin().auth.admin.deleteUser(id)
+  const { data: perfil } = await supabaseAdmin()
+    .from('users')
+    .select('auth_version')
+    .eq('id', id)
+    .single()
+  const { error } = await supabaseAdmin()
+    .from('users')
+    .update({ activo: false, auth_version: (perfil?.auth_version ?? 0) + 1 })
+    .eq('id', id)
   if (error) {
-    return NextResponse.json({ error: 'No se pudo eliminar el usuario' }, { status: 500 })
+    return NextResponse.json({ error: 'No se pudo desactivar el usuario' }, { status: 500 })
   }
   return NextResponse.json({ ok: true })
 }

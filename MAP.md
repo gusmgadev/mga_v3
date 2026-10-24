@@ -13,8 +13,8 @@
 - Tailwind 4 (`@tailwindcss/postcss` para dev webpack; regla turbopack en `next.config.ts`)
 - Dev: `next dev --webpack` · Build: `next build` (turbopack) ✓ verificados
 - `cacheComponents: true` (Next 16): páginas dependientes de sesión usan `export const instant = false` (no `force-dynamic`); `useSearchParams` va dentro de `<Suspense>`
-- Deps clave: `next-auth@5.0.0-beta.32`, `@supabase/supabase-js@2.118.0`, `zod`, `react-hook-form`, `@hookform/resolvers@5.9.2`, `resend`, `imapflow`, `mailparser`, `sanitize-html`, `@upstash/*`, `framer-motion`, `@next/third-parties`, `server-only`
-- Dev deps: `vitest` (36 tests unit+contract ✓), `@playwright/test`, `@axe-core/playwright`, `@lhci/cli`, `supabase` (CLI)
+- Deps clave: `next-auth@5.0.0-beta.32`, `@supabase/supabase-js@2.118.0`, `zod`, `react-hook-form`, `@hookform/resolvers@5.9.2`, `resend`, `imapflow`, `mailparser`, `sanitize-html`, `framer-motion`, `@next/third-parties`, `server-only`
+- Dev deps: `vitest` (38 tests unit+contract ✓), `@playwright/test`, `@axe-core/playwright`, `@lhci/cli`, `supabase` (CLI)
 - Node 24.20 / npm 11.19
 
 ## Estructura
@@ -26,14 +26,15 @@
 - `proxy.ts`: sin sesión → signin; forzar cambio de clave (`/dashboard/seguridad`); sin gate is_admin en `/dashboard/admin/*` (permiso por vista, D-15/D-16); signin con sesión → dashboard.
 - `scripts/check-env.mjs`: valida process.env usadas ⊆ §9 ⊆ `.env.example` ✓ (omite scripts one-off de migración de BD).
 - `.github/workflows/ci.yml`: lint, typecheck, test, check-env, build, audit.
-- `supabase/migrations/`: `000000_baseline_mgaServiciosBD.sql` (esquema origen), `000001_identidad_normalizada.sql` (+`is_admin`, `password_changed_at`, `role_permissions` por nodos, rol Superadmin D-16, fix RLS 42P17), `000002_radar_en_espanol.sql` (P-05), `000003_auditoria_rpcs.sql` — **las 4 aplicadas en `ensnfgucsfefrywacxzx`**. `seed.sql` placeholder.
+- `supabase/migrations/`: `000000_baseline_mgaServiciosBD.sql` (esquema origen), `000001_identidad_normalizada.sql` (+`is_admin`, `password_changed_at`, `role_permissions` por nodos, rol Superadmin D-16, fix RLS 42P17), `000002_radar_en_espanol.sql` (P-05), `000003_auditoria_rpcs.sql`, `000004_rate_limit.sql` (P-02 decisión B: `rate_limit_contadores` + RPC `rate_limit_consumir`, SHA-256, solo service_role) — **las 5 aplicadas en `ensnfgucsfefrywacxzx`** (000004 vía Management API `/database/query`). `seed.sql` placeholder.
 - `scripts/`: `generar-baseline.mjs`, `migrar-datos.mjs`, `migrar-auth.mjs`, `exportar-catalogo.mjs` (one-off de la migración de datos; check-env los omite).
-- `tests/`: `unit/` (modulos, permisos, step-token, rate-limit, smoke) + `contract/` (inventario-rutas: familias/401/403/parciales/is_admin/superadmin-fusionado; auth-paso1) = 36 ✓. `e2e/` vacío.
+- `tests/`: `unit/` (modulos, permisos, step-token, rate-limit — ahora mockea la RPC de Supabase, smoke) + `contract/` (inventario-rutas: familias/401/403/parciales/is_admin/superadmin-fusionado; auth-paso1) = 38 ✓. `e2e/` vacío.
 - Docs del kit: LEEME, prompts, .opencode, .agents/skills, plantillas, presets. `AGENTS_bk.md` = backup ignorado.
 
 ## Datos (tablas, entidades, funciones, permisos)
 - **BD destino:** proyecto Supabase `ensnfgucsfefrywacxzx` (mgaV3). Origen: `wpbogwonvbcrcpkjxdvb` (mgaServiciosBD, sistema actual en producción).
 - Identidad: `roles` (id, name, is_admin, is_default), `users` (FK auth.users, role_id, password_changed_at), `role_permissions` (role_id, nodo, acciones text[]) — RLS + REVOKE total; service role únicamente.
+- Rate limit (P-02 decisión B): tabla `rate_limit_contadores` (prefix, identificador_hash SHA-256, ventana_inicio, contador) + RPC `rate_limit_consumir` (SECURITY DEFINER, search_path fijo, EXECUTE solo a service_role; limpia ventanas >24h). Invocada por `lib/private/rate-limit.ts` vía `supabaseAdmin().rpc(...)`. Fail-closed: si la RPC falla, login responde 503.
 - Roles sembrados en destino: `Superadmin` (D-16: permisos sobre `administracion.empresas`/`administracion.modulos_pos` + otros nodos heredados del origen; no is_admin), `Usuario` (is_default), `Supervisor`.
 - Datos migrados: clientes 4463, servicios 165, noticias 6, prospectos 222, oportunidades 81, role_permissions 22, auth.users 1 (`gustavo.mgainformatica@gmail.com`, confirmado).
 - POS (D-17, misma BD): `empresas` (credenciales Supabase write-only), `empresa_modulos`, `modulos` (catálogo).
@@ -50,6 +51,7 @@
 
 ## Decisiones técnicas
 - P-01/P-02/P-05/P-06/D-17/P-07/P-08 (diseño)/P-11/P-13/P-14 resueltas (AGENTS §11 tachados; specs alineadas).
+- **P-02 decisión B (nueva):** el almacén del rate limit es Postgres (no Upstash): tabla `rate_limit_contadores` + RPC `rate_limit_consumir`; se retiraron `@upstash/ratelimit` y `@upstash/redis` de `package.json`, y las env `UPSTASH_REDIS_REST_*` de §9/`.env.example`/`.env.local`.
 - **D-15/D-16/D-17 (nuevas):** superadmin fusionado en dashboard (sin zona `/superadmin/*`, sin cookie propia, sin `SUPERADMIN_SECRET`, sin `supabase-master` ni `POS_SUPABASE_*`); rol `Superadmin` con permisos por nodo (no is_admin); una sola BD con credenciales de empresa write-only en `empresas`.
 - Login a dos pasos: `paso1` (Supabase `signInWithPassword` con anon en servidor + rate limit por IP/email) emite `step_token` HMAC-SHA256 (`AUTH_SECRET`) + cookie `mga_acceso_mfa` (httpOnly, path `/api/auth`, 5 min); NextAuth Credentials solo valida el step_token.
 - MFA TOTP: enrolamiento vía REST admin (`POST /auth/v1/admin/users/{id}/factors`); primer código con sesión efímera `generateLink('recovery')` + `verifyOtp`; sin QR (librería no autorizada).
@@ -65,3 +67,4 @@
 - Fase 0: repo inicializado (commits `326401`, `d93dc67`): stack, ESLint con fronteras SEP-2, proxy esqueleto, CI, check-env, Supabase CLI init, tests base.
 - Fase 1: identidad + auth + shell + Usuarios/Roles/Permisos (specs P-05/07/08/11/13/14 resueltas; 36 tests; lint ✓ tsc ✓ build ✓). E2E pendientes (fixes.md).
 - Migración BD (hoy, sin commit): baseline + migraciones 000001-000003 aplicadas al proyecto `ensnfgucsfefrywacxzx`; datos y auth migrados desde `wpbogwonvbcrcpkjxdvb`; superadmin fusionado (D-15/16/17) con pantallas/APIs/tests; docs (AGENTS, specs, plan, especificacion) alineadas.
+- Rate limit Postgres (hoy, sin commit): migración `000004` aplicada; `lib/shared/rate-limit.ts` → `lib/private/rate-limit.ts` (usa RPC); tests unit reescritos (38 ✓); `@upstash/*` desinstalado; AGENTS §2/§4/§9/P-02, specs/privado §5.1, plan y `.env.example` actualizados.

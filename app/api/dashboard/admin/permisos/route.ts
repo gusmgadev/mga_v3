@@ -7,14 +7,18 @@ import type { PermisoAsignado } from '@/lib/private/permisos'
 
 const ACCIONES: Accion[] = ['ver', 'crear', 'editar', 'eliminar']
 
+const EsquemaRoleId = z.string().uuid('Rol inválido')
+
 export async function GET(req: Request): Promise<NextResponse> {
   const guardado = await requierePermisoApi('administracion.permisos', 'ver')
   if (!guardado.ok) return guardado.respuesta
 
-  const roleId = new URL(req.url).searchParams.get('roleId')
-  if (!roleId) {
-    return NextResponse.json({ error: 'Falta roleId' }, { status: 400 })
+  const roleIdRaw = new URL(req.url).searchParams.get('roleId')
+  const parseRoleId = EsquemaRoleId.safeParse(roleIdRaw)
+  if (!parseRoleId.success) {
+    return NextResponse.json({ error: 'Rol inválido' }, { status: 400 })
   }
+  const roleId = parseRoleId.data
 
   const [rol, filas] = await Promise.all([
     supabaseAdmin()

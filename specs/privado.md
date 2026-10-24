@@ -198,7 +198,7 @@ Todas las tablas habilitan RLS (sin política = sin acceso salvo service role). 
    - `/auth/*` con sesión → redirect `/dashboard`
    - `/dashboard/admin/*` **no** exige `is_admin` en el proxy: cada vista exige su permiso de nodo en servidor (`requiereVista` → D-05/D-16; el rol `Superadmin` accede a `administracion.empresas` / `administracion.modulos_pos` por permisos, sin ser `is_admin`).
 4. **Toda API `/api/dashboard/*` y `/api/superadmin/*` verifica sesión propia** (el middleware no reemplaza este check) y además el **permiso del nodo** correspondiente a la acción.
-5. **Login protegido:** rate limit por IP y por email (almacén Upstash, P-02), mensaje de error genérico (no revela si la cuenta existe) y contraseña de mínimo 12 caracteres (`AGENTS.md` §4).
+5. **Login protegido:** rate limit por IP y por email (almacén en Postgres: tabla `rate_limit_contadores` + RPC `rate_limit_consumir`, P-02 decisión B), mensaje de error genérico (no revela si la cuenta existe) y contraseña de mínimo 12 caracteres (`AGENTS.md` §4).
 
 ### 5.2 Roles y permisos
 - Roles dinámicos en BD. Iniciales: `Administrador` (`is_admin = true`, acceso total implícito) y `Usuario` (`is_default = true`, **sin permisos** — P-14).

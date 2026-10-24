@@ -52,10 +52,25 @@ export async function POST(req: Request): Promise<NextResponse> {
     )
   }
 
-  await supabaseAdmin()
+  const { data: perfil } = await supabaseAdmin()
     .from('users')
-    .update({ password_changed_at: new Date().toISOString() })
+    .select('auth_version')
     .eq('id', session.user.id)
+    .single()
+  const { error: marcaError } = await supabaseAdmin()
+    .from('users')
+    .update({
+      password_changed_at: new Date().toISOString(),
+      auth_version: (perfil?.auth_version ?? 0) + 1,
+    })
+    .eq('id', session.user.id)
+  if (marcaError) {
+    console.error('[seguridad/cambiar-password] marca users:', marcaError.message)
+    return NextResponse.json(
+      { error: 'No se pudo completar el cambio' },
+      { status: 500 },
+    )
+  }
 
   return NextResponse.json({ ok: true, requiere_relogin: true })
 }

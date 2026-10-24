@@ -91,7 +91,7 @@ Implementación (la propone el agente y la documenta en la migración): preferid
 Ante conflicto con una spec, manda este stack.
 
 **Librerías autorizadas** (lista cerrada; cualquier otra requiere mi autorización):
-`next`, `react`, `react-dom`, `typescript`, `next-auth` (v5, versión exacta fijada: `5.0.0-beta.32`), `@supabase/supabase-js`, `zod`, `react-hook-form`, `@hookform/resolvers`, `lucide-react`, `server-only`, `resend`, `imapflow`, `mailparser`, `eslint` + `eslint-config-next`, `vitest`, `@playwright/test`, `@axe-core/playwright`, `@lhci/cli`, `sanitize-html`, `supabase` (CLI, dev), `@upstash/ratelimit` + `@upstash/redis`.
+`next`, `react`, `react-dom`, `typescript`, `next-auth` (v5, versión exacta fijada: `5.0.0-beta.32`), `@supabase/supabase-js`, `zod`, `react-hook-form`, `@hookform/resolvers`, `lucide-react`, `server-only`, `resend`, `imapflow`, `mailparser`, `eslint` + `eslint-config-next`, `vitest`, `@playwright/test`, `@axe-core/playwright`, `@lhci/cli`, `sanitize-html`, `supabase` (CLI, dev).
 Solo zona pública: `tailwindcss`, `@tailwindcss/postcss`, `framer-motion`, `@next/third-parties`. Solo noticias del dashboard: `@tiptap/*`.
 
 ---
@@ -139,7 +139,7 @@ Base obligatoria en todas las fases y en ambas zonas. Lo específico de cada zon
 - MFA (P-08): antes de implementar, especificar el flujo MFA contra el flujo Credentials de NextAuth v5 (M-10). Sin ese diseño, no se implementa.
 
 ### Endpoints públicos y anti-bots
-- Rate limit y protección anti-bots en: login del dashboard, `/api/public/contact`, voz y extracción de oportunidades. El almacén del contador debe ser compartido, no memoria del proceso (P-02).
+- Rate limit y protección anti-bots en: login del dashboard, `/api/public/contact`, voz y extracción de oportunidades. El almacén del contador es la tabla `rate_limit_contadores` en Postgres (P-02, decisión B), invocada por RPC (`rate_limit_consumir`) desde el servidor; nunca memoria del proceso.
 - **Anti-bots mínimo obligatorio:** honeypot + rate limit. Cualquier captcha o servicio externo de verificación requiere mi autorización (§2).
 
 ### Archivos
@@ -281,7 +281,8 @@ Zonas: **P** pública · **A** acceso · **D** dashboard. `.env.example` se gene
 | `INSTAGRAM_USER_ID`, `INSTAGRAM_ACCESS_TOKEN` | D | sí | Opcional |
 | `GOOGLE_MAPS_API_KEY` | D | sí | Radar (Places), solo servidor, restringida por API |
 | `GOOGLE_PAGESPEED_API_KEY` | D | sí | Radar |
-| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | P, A, D | sí | Almacén compartido del rate limit (P-02); librerías `@upstash/*` |
+
+> El rate limit no usa variables de entorno: su almacén es la tabla `rate_limit_contadores` de la BD (P-02, decisión B).
 
 `GEMINI_API_KEY` y `CEREBRAS_API_KEY` no se declaran hasta que exista una spec que las use (D-08).
 
@@ -391,7 +392,7 @@ Semántica: "Debe resolverse en" indica la fase límite; si es el **inicio** de 
 | ID | Tema | Recomendación | Debe resolverse en |
 |---|---|---|---|
 | ~~P-01~~ | ~~Aprobar librerías propuestas (§2)~~ **Resuelto:** aprobadas todas por el dueño; §2 actualizado | — | Fase 0 |
-| ~~P-02~~ | ~~Almacén del rate limit~~ **Resuelto:** Upstash Redis (§9, `UPSTASH_REDIS_REST_URL/TOKEN`) | — | Fase 1 |
+| ~~P-02~~ | ~~Almacén del rate limit~~ **Resuelto (decisión B, dueño):** almacén en Postgres — tabla `rate_limit_contadores` + RPC `rate_limit_consumir` (identificadores con SHA-256, invocada con service role); se retiraron `@upstash/*` y las env `UPSTASH_REDIS_REST_*` (§9/§2 actualizados) | — | Fase 1 |
 | P-04 | Datos de clientes en landing | Publicar solo nombre, rubro, logo y web. Teléfono y dirección solo con consentimiento explícito y nunca de clientes `PARTICULAR` | P2 |
 | ~~P-05~~ | ~~Nombres en BD~~ **Resuelto:** tablas/columnas del Radar unificadas en español en `specs/privado.md` §4.5 | — | Fase 1 |
 | ~~P-06~~ | ~~Env de la BD del POS~~ **Resuelto por D-17:** única BD; sin `POS_SUPABASE_*` (§9 actualizado) | — | — |

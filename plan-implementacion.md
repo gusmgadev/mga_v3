@@ -28,7 +28,7 @@
 - [x] `proxy.ts` de protecciones (no `middleware.ts`) — esqueleto con matcher; lógica en Fase 1
 - [x] Instalar solo dependencias autorizadas (§2) — incluye `@tailwindcss/postcss` para el dev con webpack y `@types/node@^24` (requisito de vitest 5)
 - [x] Vitest + Playwright (+ `@axe-core/playwright`); estructura `tests/{unit,contract,e2e}`; smoke unitario verde
-- [x] `.env.example` completo desde §9 + script `scripts/check-env` (incluye `UPSTASH_REDIS_REST_*`, añadidas a §9)
+- [x] `.env.example` completo desde §9 + script `scripts/check-env` (el rate limit no usa env: almacén en Postgres, P-02 decisión B)
 - [x] Supabase local (CLI init) + esqueleto `supabase/migrations/` + `seed.sql` sintético
 - [x] Headers base de producción en `next.config.ts` (SEP-8: nosniff, Referrer-Policy, `frame-ancestors`, HSTS; CSP por zona queda para Fases P1/1)
 - [x] `app/layout.tsx` mínimo (`lang="es-AR"`) + página de prueba que compila
@@ -50,7 +50,7 @@
 - [x] NextAuth v5 Credentials + JWT sobre Supabase Auth (`signInWithPassword` con anon en servidor); `AUTH_SECRET`
 - [x] Flujo de credenciales P-13: entrega de contraseña inicial (invite o clave temporal forzada a cambio) + reset "olvidé mi contraseña"
 - [x] `proxy.ts`: `/dashboard/*` sin sesión → signin; forzar cambio de clave; `/dashboard/admin/*` sin gate is_admin (permiso por vista, D-15/D-16); signin con sesión → dashboard
-- [x] Rate limit de login (P-02: almacén compartido, p. ej. Upstash) por IP y por email; error genérico; mínimo 12 caracteres
+- [x] Rate limit de login (P-02 decisión B: almacén en Postgres, tabla `rate_limit_contadores` + RPC `rate_limit_consumir` con SHA-256) por IP y por email; error genérico; mínimo 12 caracteres
 - [x] Setup Tailwind v4 con tokens propios por route group desde `lib/private/theme.ts` (D-10/P-11; patrón definido en `specs/privado.md`)
 - [x] Shell del dashboard: home con tarjetas y saludo, sidebar y rutas derivadas de `modulos.ts`
 - [x] Usuarios: CRUD, alta solo por Administrador, solo admin cambia rol ajeno, nadie el propio
